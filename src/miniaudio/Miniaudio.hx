@@ -18,6 +18,7 @@ abstract Buffer(BufferImpl) from BufferImpl to BufferImpl
 		return null;
 	}
 }
+
 private typedef BufferImpl = hl.Abstract<'ma_audio_buffer*'>;
 
 @:hlNative('miniaudio', 'sound_group_')
@@ -27,6 +28,7 @@ abstract SoundGroup(SoundGroupImpl) from SoundGroupImpl to SoundGroupImpl
 	public var pan(get, set):Float;
 	// TODO: pan mode (??)
 	public var pitch(get, set):Float;
+
 	// TODO: spatialization (??)
 
 	public inline function new(?parent:SoundGroup)
@@ -80,6 +82,7 @@ abstract SoundGroup(SoundGroupImpl) from SoundGroupImpl to SoundGroupImpl
 		return 0;
 	}
 }
+
 private typedef SoundGroupImpl = hl.Abstract<'ma_sound_group*'>;
 
 @:hlNative('miniaudio', 'sound_')
@@ -90,6 +93,7 @@ abstract Sound(SoundImpl) from SoundImpl to SoundImpl
 	// TODO: pan mode (??)
 	public var pitch(get, set):Float;
 	// TODO: spatialization (??)
+	public var time(get, never):Float;
 
 	public inline function new(buffer:Buffer, ?parent:SoundGroup)
 	{
@@ -143,15 +147,23 @@ abstract Sound(SoundImpl) from SoundImpl to SoundImpl
 	{
 		return 0;
 	}
+
+	private function get_time():Float
+	{
+		return 0;
+	}
 }
+
 private typedef SoundImpl = hl.Abstract<'ma_sound*'>;
 
 @:hlNative('miniaudio')
-class Miniaudio {
+class Miniaudio
+{
 	public static function init():Bool
 	{
 		return false;
 	}
+
 	public static function uninit() {}
 
 	public static inline function describeLastError():String

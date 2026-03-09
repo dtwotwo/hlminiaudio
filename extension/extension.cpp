@@ -197,3 +197,9 @@ GET_SET_FLOAT(pan)
 // TODO: pan mode (??)
 GET_SET_FLOAT(pitch)
 // TODO: spatialization (??)
+
+HL_PRIM double HL_NAME(sound_get_time)(ma_sound* sound)
+{
+    return ma_sound_get_time_in_milliseconds(sound);
+}
+DEFINE_PRIM(_F64, sound_get_time, _SOUND);

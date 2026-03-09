@@ -1,0 +1,8 @@
+{
+	"name": "hlminiaudio",
+	"license": "MIT",
+	"releasenote": "",
+	"contributors": ["gimmesoda"],
+	"version": "0.1.0",
+	"classPath": "src"
+}

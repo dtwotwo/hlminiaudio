@@ -32,13 +32,15 @@ function main()
 				Sys.println('  Volume: ${sound.volume}');
 			case 80: // Down
 				var vol:Int = Std.int(sound.volume * 10);
-				if (vol-- < 0) vol = 0;
+				if (vol-- < 0)
+					vol = 0;
 				sound.volume = vol / 10;
 				Sys.println('  Volume: ${sound.volume}');
 
 			case 75: // Left
 				var pit:Int = Std.int(sound.pitch * 10);
-				if (pit-- < 1) pit = 1;
+				if (pit-- < 1)
+					pit = 1;
 				sound.pitch = pit / 10;
 				Sys.println('  Pitch: ${sound.pitch}');
 			case 77: // Right
