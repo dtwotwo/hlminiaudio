@@ -2,6 +2,21 @@ package miniaudio;
 
 import haxe.io.Bytes;
 
+typedef DecodedAudio =
+{
+	bytes:Bytes,
+	channels:Int,
+	sampleRate:Int,
+	samples:Int,
+	floatFormat:Bool,
+}
+
+enum abstract PanMode(Int) from Int to Int
+{
+	var Balance = 0;
+	var Pan = 1;
+}
+
 @:hlNative('miniaudio', 'buffer_')
 abstract Buffer(BufferImpl) from BufferImpl to BufferImpl
 {
@@ -9,7 +24,21 @@ abstract Buffer(BufferImpl) from BufferImpl to BufferImpl
 
 	public static inline function fromBytes(bytes:Bytes)
 	{
+		#if hlopus
+		if (isOpusStream(bytes))
+			return fromOpusBytes(bytes);
+		#end
 		return _fromBytes(bytes, bytes.length);
+	}
+
+	public static inline function fromPCMFloat(bytes:Bytes, channels:Int, sampleRate:Int)
+	{
+		return _fromPCMFloat(bytes, bytes.length, channels, sampleRate);
+	}
+
+	public static inline function fromPCM16(bytes:Bytes, channels:Int, sampleRate:Int)
+	{
+		return _fromPCM16(bytes, bytes.length, channels, sampleRate);
 	}
 
 	@:hlNative('miniaudio', 'buffer_from_bytes')
@@ -17,6 +46,50 @@ abstract Buffer(BufferImpl) from BufferImpl to BufferImpl
 	{
 		return null;
 	}
+
+	@:hlNative('miniaudio', 'buffer_from_pcm_float')
+	private static function _fromPCMFloat(bytes:hl.Bytes, size:Int, channels:Int, sampleRate:Int):Buffer
+	{
+		return null;
+	}
+
+	@:hlNative('miniaudio', 'buffer_from_pcm_s16')
+	private static function _fromPCM16(bytes:hl.Bytes, size:Int, channels:Int, sampleRate:Int):Buffer
+	{
+		return null;
+	}
+
+	#if hlopus
+	private static function fromOpusBytes(bytes:Bytes):Buffer
+	{
+		var decoder = new hlopus.Decoder(bytes);
+		var pcm = decoder.decodeAll(hlopus.SampleFormat.F32);
+		return fromPCMFloat(pcm, decoder.channels, decoder.samplingRate);
+	}
+
+	private static function isOpusStream(bytes:Bytes):Bool
+	{
+		if (bytes.length < 36)
+			return false;
+
+		if (bytes.get(0) != 'O'.code || bytes.get(1) != 'g'.code || bytes.get(2) != 'g'.code || bytes.get(3) != 'S'.code)
+			return false;
+
+		var numSegments = bytes.get(26);
+		var dataOffset = 27 + numSegments;
+		if (bytes.length < dataOffset + 8)
+			return false;
+
+		return bytes.get(dataOffset) == 'O'.code
+			&& bytes.get(dataOffset + 1) == 'p'.code
+			&& bytes.get(dataOffset + 2) == 'u'.code
+			&& bytes.get(dataOffset + 3) == 's'.code
+			&& bytes.get(dataOffset + 4) == 'H'.code
+			&& bytes.get(dataOffset + 5) == 'e'.code
+			&& bytes.get(dataOffset + 6) == 'a'.code
+			&& bytes.get(dataOffset + 7) == 'd'.code;
+	}
+	#end
 }
 
 private typedef BufferImpl = hl.Abstract<'ma_audio_buffer*'>;
@@ -26,15 +99,16 @@ abstract SoundGroup(SoundGroupImpl) from SoundGroupImpl to SoundGroupImpl
 {
 	public var volume(get, set):Float;
 	public var pan(get, set):Float;
-	// TODO: pan mode (??)
+	public var panMode(get, set):PanMode;
 	public var pitch(get, set):Float;
-
-	// TODO: spatialization (??)
+	public var spatializationEnabled(get, set):Bool;
 
 	public inline function new(?parent:SoundGroup)
 	{
 		this = _init(parent);
 	}
+
+	public function dispose() {}
 
 	public function start():Bool
 	{
@@ -72,6 +146,16 @@ abstract SoundGroup(SoundGroupImpl) from SoundGroupImpl to SoundGroupImpl
 		return 0;
 	}
 
+	private function get_panMode():PanMode
+	{
+		return Balance;
+	}
+
+	private function set_panMode(v:PanMode):PanMode
+	{
+		return v;
+	}
+
 	private function get_pitch():Float
 	{
 		return 0;
@@ -80,6 +164,16 @@ abstract SoundGroup(SoundGroupImpl) from SoundGroupImpl to SoundGroupImpl
 	private function set_pitch(v:Float):Float
 	{
 		return 0;
+	}
+
+	private function get_spatializationEnabled():Bool
+	{
+		return false;
+	}
+
+	private function set_spatializationEnabled(v:Bool):Bool
+	{
+		return v;
 	}
 }
 
@@ -90,9 +184,9 @@ abstract Sound(SoundImpl) from SoundImpl to SoundImpl
 {
 	public var volume(get, set):Float;
 	public var pan(get, set):Float;
-	// TODO: pan mode (??)
+	public var panMode(get, set):PanMode;
 	public var pitch(get, set):Float;
-	// TODO: spatialization (??)
+	public var spatializationEnabled(get, set):Bool;
 	public var time(get, never):Float;
 
 	public inline function new(buffer:Buffer, ?parent:SoundGroup)
@@ -108,6 +202,24 @@ abstract Sound(SoundImpl) from SoundImpl to SoundImpl
 	}
 
 	public function stop():Bool
+	{
+		return false;
+	}
+
+	@:hlNative('miniaudio', 'sound_seek_samples')
+	public function seekSamples(v:Int):Int
+	{
+		return v;
+	}
+
+	@:hlNative('miniaudio', 'sound_get_cursor_samples')
+	public function getCursorSamples():Int
+	{
+		return 0;
+	}
+
+	@:hlNative('miniaudio', 'sound_is_playing')
+	public function isPlaying():Bool
 	{
 		return false;
 	}
@@ -138,6 +250,16 @@ abstract Sound(SoundImpl) from SoundImpl to SoundImpl
 		return 0;
 	}
 
+	private function get_panMode():PanMode
+	{
+		return Balance;
+	}
+
+	private function set_panMode(v:PanMode):PanMode
+	{
+		return v;
+	}
+
 	private function get_pitch():Float
 	{
 		return 0;
@@ -146,6 +268,16 @@ abstract Sound(SoundImpl) from SoundImpl to SoundImpl
 	private function set_pitch(v:Float):Float
 	{
 		return 0;
+	}
+
+	private function get_spatializationEnabled():Bool
+	{
+		return false;
+	}
+
+	private function set_spatializationEnabled(v:Bool):Bool
+	{
+		return v;
 	}
 
 	private function get_time():Float
@@ -166,6 +298,44 @@ class Miniaudio
 
 	public static function uninit() {}
 
+	public static inline function decodeToPCMFloat(bytes:Bytes):DecodedAudio
+	{
+		final decoded = _decodeToPCMFloat(bytes, bytes.length);
+		final channels = _decodedChannels();
+		final sampleRate = _decodedSampleRate();
+		final samples = _decodedSamples();
+		final byteCount = samples * channels * 4;
+		if (decoded == null)
+			return null;
+
+		return {
+			bytes: @:privateAccess new Bytes(decoded, byteCount),
+			channels: channels,
+			sampleRate: sampleRate,
+			samples: samples,
+			floatFormat: true,
+		};
+	}
+
+	public static inline function decodeToPCM16(bytes:Bytes):DecodedAudio
+	{
+		final decoded = _decodeToPCM16(bytes, bytes.length);
+		final channels = _decodedChannels();
+		final sampleRate = _decodedSampleRate();
+		final samples = _decodedSamples();
+		final byteCount = samples * channels * 2;
+		if (decoded == null)
+			return null;
+
+		return {
+			bytes: @:privateAccess new Bytes(decoded, byteCount),
+			channels: channels,
+			sampleRate: sampleRate,
+			samples: samples,
+			floatFormat: false,
+		};
+	}
+
 	public static inline function describeLastError():String
 	{
 		return @:privateAccess String.fromUTF8(_describeLastError());
@@ -175,5 +345,35 @@ class Miniaudio
 	private static function _describeLastError():hl.Bytes
 	{
 		return null;
+	}
+
+	@:hlNative('miniaudio', 'decode_pcm_float')
+	private static function _decodeToPCMFloat(bytes:hl.Bytes, size:Int):hl.Bytes
+	{
+		return null;
+	}
+
+	@:hlNative('miniaudio', 'decode_pcm_s16')
+	private static function _decodeToPCM16(bytes:hl.Bytes, size:Int):hl.Bytes
+	{
+		return null;
+	}
+
+	@:hlNative('miniaudio', 'decoded_channels')
+	private static function _decodedChannels():Int
+	{
+		return 0;
+	}
+
+	@:hlNative('miniaudio', 'decoded_sample_rate')
+	private static function _decodedSampleRate():Int
+	{
+		return 0;
+	}
+
+	@:hlNative('miniaudio', 'decoded_samples')
+	private static function _decodedSamples():Int
+	{
+		return 0;
 	}
 }

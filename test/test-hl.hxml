@@ -1,0 +1,9 @@
+-cp .
+
+-lib hlminiaudio
+
+# optional for opus support - haxelib git hlopus https://github.com/gimmesoda/hlopus
+-lib hlopus
+
+-m Test
+-hl test.hl
