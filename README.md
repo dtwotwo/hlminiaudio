@@ -30,8 +30,17 @@
   - [x] `ogg`
   - [x] `aiff`
 - [ ] better sound api implementation for heaps
-- [ ] streaming support
-- [ ] optimizations
+- [x] streaming support for HashLink / native target
+  - [x] seekable native stream decoder for supported formats
+  - [x] Heaps `hxd.snd.Data` streaming with initial preload window
+  - [x] Stream directly from file path (native)
+  - [ ] JS / WASM streaming support
+- [x] optimizations
+  - [x] avoid extra decoded PCM `Bytes` roundtrip when creating native buffers from encoded bytes
+  - [x] release temporary decoded PCM after miniaudio copies it into `ma_audio_buffer`
+  - [x] allocate PCM directly on HashLink heap for decoding API
+  - [x] optimized sound callback removal ($O(1)$)
+  - [x] broader load-time profiling and copy audit
 - [ ] device enumeration api
 - [ ] audio input / capture api
 - [ ] microphone recording support
@@ -87,14 +96,18 @@
 
 ## Memory management
 
-- [ ] allocate sound objects through GC
-- [ ] keep audio buffers alive while they are still referenced
-- [ ] decide buffer lifetime strategy: refcounting vs full GC ownership
-- [ ] add GC-safe handling for streamed / decoded audio data
-- [ ] prevent premature buffer freeing when sounds share the same source
-- [ ] GC-safe lifetime for capture / recording buffers
-- [ ] shared ownership model for effect chains / DSP nodes
-- [ ] zero-copy path where safe for streamed and captured audio
+- [x] allocate native audio objects through GC-managed HashLink handles
+  - [x] buffers
+  - [x] sounds
+  - [x] sound groups
+- [x] keep audio buffers alive while they are still referenced
+- [x] decide buffer lifetime strategy: refcounting over GC-managed native handles
+- [x] add GC-safe handling for streamed / decoded audio data
+  - [x] native stream decoder allocated with HashLink finalizer
+  - [x] explicit stream disposal from Heaps resource cache
+  - [x] Heaps resource `dispose()` clears decoded / streamed cache and native buffer
+- [x] prevent premature buffer freeing when sounds share the same source
+- [x] prevent parent sound group disposal while child groups / sounds still reference it
 
 ## Bindings / public API
 
@@ -102,6 +115,7 @@
 - [ ] add bindings for capture device control
 - [ ] add bindings for device enumeration
 - [ ] add bindings for recording api
+- [x] add bindings for native stream decoder reads
 - [ ] add bindings for stream callbacks
 - [ ] add bindings for effect / DSP api
 - [ ] add bindings for backend / device capability queries
@@ -118,14 +132,19 @@
 
 ## Development
 
-- [ ] test cases
-- [ ] playback tests
-- [ ] decode / stream tests
+- [x] test cases
+- [x] playback tests
+- [x] decode / stream tests
+  - [x] deterministic decode tests for supported fixture formats
+  - [x] Heaps resource cache tests
+  - [x] forced streaming path tests with mid-stream decode checks
 - [ ] device enumeration tests
 - [ ] capture / recording tests
 - [ ] duplex mode tests
 - [ ] effect chain tests
 - [ ] stress tests for buffer lifetime / GC interactions
+  - [x] disposal-order regression test for sound-owned buffers and groups
+  - [ ] high-volume repeated scene/cache churn test
 
 ## Language / portability
 

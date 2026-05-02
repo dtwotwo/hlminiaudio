@@ -116,7 +116,7 @@ if(NOT TARGET opusfile)
 endif()
 
 if (WASI)
-	add_executable(extension "extension_js.c")
+	add_executable(extension "js/extension_js.c")
 	set_target_properties(extension PROPERTIES SUFFIX ".js")
 	target_link_options(extension PRIVATE
 		-sWASM=1
@@ -127,7 +127,8 @@ if (WASI)
 		"-sEXPORTED_RUNTIME_METHODS=['ccall','getValue','UTF8ToString','HEAPU8']"
 	)
 else()
-	add_library(extension SHARED "extension.c")
+	file(GLOB NATIVE_SOURCES "*.c")
+	add_library(extension SHARED ${NATIVE_SOURCES})
 	set_target_properties(extension PROPERTIES SUFFIX ".hdll")
 endif()
 

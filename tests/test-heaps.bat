@@ -10,7 +10,7 @@ haxe test-heaps.hxml
 if errorlevel 1 goto :fail
 
 echo [2/2] Running Heaps tests...
-hl test.hl
+hl test-heaps.hl
 if errorlevel 1 goto :fail
 
 exit /b 0

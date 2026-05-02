@@ -1,13 +1,14 @@
 import haxe.io.Bytes;
 import haxe.io.Path;
 import miniaudio.Miniaudio;
+import miniaudio.types.DecodedAudio;
 import sys.FileSystem;
 
 typedef FixtureDecode = {
 	path:String,
 	bytes:Bytes,
-	floatDecoded:miniaudio.DecodedAudio,
-	pcm16Decoded:miniaudio.DecodedAudio,
+	floatDecoded:DecodedAudio,
+	pcm16Decoded:DecodedAudio,
 }
 
 typedef FixtureFailure = {
@@ -112,7 +113,7 @@ class TestSupport {
 		};
 	}
 
-	public static function assertDecodedAudio(decoded:miniaudio.DecodedAudio, label:String, floatFormat:Bool):Void {
+	public static function assertDecodedAudio(decoded:DecodedAudio, label:String, floatFormat:Bool):Void {
 		assert(decoded.channels > 0, label + ": invalid channel count");
 		assert(decoded.sampleRate > 0, label + ": invalid sample rate");
 		assert(decoded.samples > 0, label + ": invalid sample count");

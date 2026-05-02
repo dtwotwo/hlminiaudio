@@ -4,5 +4,5 @@
 	"releasenote": "",
 	"contributors": ["dtwotwo", "gimmesoda"],
 	"version": "1.0.0",
-	"classPath": "src"
+	"classPath": "."
 }

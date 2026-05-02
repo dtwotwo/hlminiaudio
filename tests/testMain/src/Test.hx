@@ -45,6 +45,16 @@ private function main() {
 			TestSupport.printFail("pcm", message);
 		}
 		try {
+			testGCLifetime(TestSupport.decodeFixture(TestSupport.fixtures[0]).bytes);
+			TestSupport.printOk("gc");
+		}
+		catch (e) {
+			failed = true;
+			final message = Std.string(e);
+			issues.push({path: "gc", message: message, kind: "fail"});
+			TestSupport.printFail("gc", message);
+		}
+		try {
 			testInvalidInput();
 			TestSupport.printOk("invalid");
 		}
@@ -192,6 +202,25 @@ private function testPCMBufferFactories(group:SoundGroup):Void {
 	TestSupport.assert(pcm16Sound != null, "sound from PCM16 buffer failed");
 	pcm16Sound.dispose();
 	pcm16Buffer.dispose();
+}
+
+private function testGCLifetime(bytes:Bytes):Void {
+	final group = new SoundGroup();
+	final buffer = Buffer.fromBytes(bytes);
+	TestSupport.assert(buffer != null, "gc: buffer creation failed: " + Miniaudio.describeLastError());
+	final sound = new Sound(buffer, group);
+	TestSupport.assert(sound != null, "gc: sound creation failed: " + Miniaudio.describeLastError());
+
+	final length = sound.lengthSamples;
+	TestSupport.assert(length > 0, "gc: sound length should be available before disposal order test");
+	buffer.dispose();
+	group.dispose();
+	Miniaudio.gc();
+
+	TestSupport.assertEquals(length, sound.lengthSamples, "gc: sound should keep disposed buffer alive");
+	TestSupport.assert(sound.duration > 0, "gc: sound should keep disposed parent group alive");
+	sound.dispose();
+	Miniaudio.gc();
 }
 
 private function testInvalidInput():Void {
