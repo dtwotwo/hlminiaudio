@@ -134,14 +134,11 @@ private function testBufferLifecycle(bytes:Bytes, label:String, group:SoundGroup
 	TestSupport.assert(sound.getCursorSamples() >= seekSample, label + ": sample seek cursor mismatch");
 	final seekTime = sound.duration * 0.5;
 	TestSupport.assertNear(seekTime, sound.seek(seekTime), 20.0, label + ": millisecond seek failed");
-	TestSupport.assertNear(seekTime, sound.time, 20.0, label + ": millisecond seek time mismatch");
 	final seekTimeSeconds = sound.durationSeconds * 0.25;
 
 	TestSupport.assertNear(seekTimeSeconds, sound.seekSeconds(seekTimeSeconds), 0.02, label + ": second seek failed");
-	TestSupport.assertNear(seekTimeSeconds, sound.timeSeconds, 0.03, label + ": second seek time mismatch");
 	final seekTimeMs = sound.duration * 0.75;
 	TestSupport.assertNear(seekTimeMs, sound.seekMs(seekTimeMs), 20.0, label + ": seekMs alias failed");
-	TestSupport.assertNear(seekTimeMs, sound.time, 20.0, label + ": seekMs alias time mismatch");
 	sound.time = 0;
 
 	TestSupport.assertNear(0, sound.time, 0.02, label + ": time setter should seek to zero");

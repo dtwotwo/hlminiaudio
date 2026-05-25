@@ -1,4 +1,4 @@
-name: Build Windows Release
+name: Build
 
 on:
   workflow_dispatch:
@@ -12,17 +12,18 @@ permissions:
   contents: write
 
 jobs:
-  windows:
+  build:
+    name: Build native
     runs-on: windows-2025-vs2026
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
         with:
           submodules: recursive
 
       - name: Set up MSVC
-        uses: blytkerchan/devsecops-setup-msvc@v1
+        uses: vln-devsecops/actions-msvc@release/v1
         with:
           arch: x64
 
@@ -44,6 +45,7 @@ jobs:
           }
 
           "HASHLINK=$($hashlinkDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$($hashlinkDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Configure CMake
         run: cmake --preset release
@@ -51,12 +53,98 @@ jobs:
       - name: Build release
         run: cmake --build out/build/release --config Release
 
-      - name: Package release files
+      - name: Stage native build
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path 'dist/native' | Out-Null
           Copy-Item 'out/build/release/extension/miniaudio.hdll' 'dist/native/miniaudio.hdll'
           Copy-Item 'out/build/release/extension/miniaudio.lib' 'dist/native/miniaudio.lib'
+
+      - name: Save native build
+        uses: actions/cache/save@v5.0.5
+        with:
+          path: dist/native
+          key: ${{ runner.os }}-hlminiaudio-native-${{ github.run_id }}-${{ github.run_attempt }}
+
+  test:
+    name: Test Haxe ${{ matrix.haxe-version }}
+    needs: build
+    runs-on: windows-2025-vs2026
+
+    strategy:
+      fail-fast: false
+      matrix:
+        haxe-version: ["4.3.7", "latest"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: recursive
+
+      - name: Set up Haxe
+        uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: ${{ matrix.haxe-version }}
+
+      - name: Download HashLink
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/HaxeFoundation/hashlink/releases/latest'
+          $asset = $release.assets | Where-Object { $_.name -like 'hashlink-*-win.zip' } | Select-Object -First 1
+          if (-not $asset) {
+            throw 'Could not find a Windows HashLink release asset.'
+          }
+
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile 'hashlink-win.zip'
+          Expand-Archive -LiteralPath 'hashlink-win.zip' -DestinationPath 'hashlink' -Force
+
+          $hashlinkDir = Get-ChildItem -Path 'hashlink' -Directory | Select-Object -First 1
+          if (-not $hashlinkDir) {
+            throw 'Could not locate the extracted HashLink directory.'
+          }
+
+          "HASHLINK=$($hashlinkDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$($hashlinkDir.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Restore native build
+        uses: actions/cache/restore@v5.0.5
+        with:
+          path: dist/native
+          key: ${{ runner.os }}-hlminiaudio-native-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Stage test native files
+        shell: pwsh
+        run: Copy-Item 'dist/native/miniaudio.hdll' 'tests/testMain/miniaudio.hdll' -Force
+
+      - name: Compile HL tests
+        working-directory: tests/testMain
+        run: |
+          haxe --version
+          haxe test-hl.hxml
+
+      - name: Run HL tests
+        working-directory: tests/testMain
+        run: |
+          hl --version
+          hl test.hl
+
+  package:
+    name: Package release
+    needs: test
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: recursive
+
+      - name: Restore native build
+        uses: actions/cache/restore@v5.0.5
+        with:
+          path: dist/native
+          key: ${{ runner.os }}-hlminiaudio-native-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Verify packaged files
         shell: pwsh
@@ -80,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hlminiaudio-windows
-          path: dist/native
+          path: hlminiaudio-windows.zip
 
       - name: Update nightly release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

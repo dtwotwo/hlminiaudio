@@ -1,3 +1,4 @@
-/.vs/
-/build/
-/out/
+.vs
+build
+out
+.haxelib
