@@ -360,7 +360,10 @@ HL_PRIM double HL_NAME(sound_get_time)(ma_sound_handle* sound)
 	ma_uint32 sampleRate = 0;
 	ma_sound* rawSound = sound_ptr(sound);
 
-	cursor = ma_sound_get_time_in_pcm_frames(rawSound);
+	lastResult = ma_sound_get_cursor_in_pcm_frames(rawSound, &cursor);
+	if (lastResult != MA_SUCCESS)
+		return 0;
+
 	lastResult = ma_sound_get_data_format(rawSound, NULL, NULL, &sampleRate, NULL, 0);
 	if (lastResult != MA_SUCCESS || sampleRate == 0)
 		return 0;
@@ -381,7 +384,10 @@ HL_PRIM double HL_NAME(sound_get_time_seconds)(ma_sound_handle* sound)
 	ma_uint32 sampleRate = 0;
 	ma_sound* rawSound = sound_ptr(sound);
 
-	cursor = ma_sound_get_time_in_pcm_frames(rawSound);
+	lastResult = ma_sound_get_cursor_in_pcm_frames(rawSound, &cursor);
+	if (lastResult != MA_SUCCESS)
+		return 0;
+
 	lastResult = ma_sound_get_data_format(rawSound, NULL, NULL, &sampleRate, NULL, 0);
 	if (lastResult != MA_SUCCESS || sampleRate == 0)
 		return 0;
