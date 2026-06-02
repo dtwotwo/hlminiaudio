@@ -1,5 +1,5 @@
 <h1 align="center">
-	<a href="https://github.com/dtwotwo/hlminiaudio"><img src=".github/images/hlminiaudio.svg" alt="hlminiaudio" width="1280"></a>
+	<a href="https://github.com/dtwotwo/hlminiaudio"><img src=".github/images/hlminiaudio.svg" alt="hlminiaudio logo by Neyz1n!" width="1280"></a>
 	<br>
 </h1>
 
