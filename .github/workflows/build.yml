@@ -146,6 +146,10 @@ jobs:
           path: dist/native
           key: ${{ runner.os }}-hlminiaudio-native-${{ github.run_id }}-${{ github.run_attempt }}
 
+      - name: Stage license files
+        shell: pwsh
+        run: Copy-Item 'LICENSE*' 'dist/native/' -Force
+
       - name: Verify packaged files
         shell: pwsh
         run: |
@@ -154,6 +158,9 @@ jobs:
           }
           if (-not (Test-Path 'dist/native/miniaudio.lib')) {
             throw 'Missing dist/native/miniaudio.lib'
+          }
+          if (-not (Get-ChildItem -Path 'dist/native' -File -Filter 'LICENSE*')) {
+            throw 'Missing dist/native/LICENSE*'
           }
 
       - name: Create release zip

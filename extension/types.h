@@ -100,3 +100,21 @@ typedef pthread_mutex_t am_mutex;
 #define am_mutex_unlock(m) pthread_mutex_unlock(m)
 #define am_mutex_uninit(m) pthread_mutex_destroy(m)
 #endif
+
+typedef struct ma_pcm_sink_handle
+{
+	void (*finalize)(struct ma_pcm_sink_handle*);
+	ma_device device;
+	am_mutex mutex;
+	float* samples;
+	size_t readFrame;
+	size_t writeFrame;
+	size_t bufferedFrames;
+	size_t capacityFrames;
+	double playedFrames;
+	ma_uint32 sampleRate;
+	ma_uint32 channels;
+	float volume;
+	int paused;
+	int initialized;
+} ma_pcm_sink_handle;

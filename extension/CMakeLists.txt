@@ -146,7 +146,12 @@ if (NOT WASI)
 	endif()
 endif()
 
-add_subdirectory("lib/miniaudio")
+FetchContent_Declare(
+	miniaudio_source
+	GIT_REPOSITORY https://github.com/mackron/miniaudio.git
+	GIT_TAG 9634bedb5b5a2ca38c1ee7108a9358a4e233f14d
+)
+FetchContent_MakeAvailable(miniaudio_source)
 if(NOT TARGET miniaudio_libvorbis)
 	message(FATAL_ERROR "libvorbis support is required, but miniaudio_libvorbis was not created")
 endif()

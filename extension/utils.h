@@ -9,6 +9,7 @@
 #define _SOUND _ABSTRACT(ma_sound_handle)
 #define _GROUP _ABSTRACT(ma_group_handle)
 #define _DECODER _ABSTRACT(ma_stream_decoder)
+#define _PCM_SINK _ABSTRACT(ma_pcm_sink_handle)
 
 // ─── UTILS ──────────────────────────────────────
 

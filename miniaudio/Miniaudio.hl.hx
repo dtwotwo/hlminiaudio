@@ -99,6 +99,65 @@ abstract Buffer(BufferImpl) from BufferImpl to BufferImpl {
 
 private typedef BufferImpl = hl.Abstract<"ma_buffer_handle">;
 
+// ─── PcmSink ───────────────────────────────────────────────────────────────
+
+/**
+	A playback sink for interleaved floating-point PCM audio.
+**/
+@:hlNative("miniaudio", "pcm_sink_")
+abstract PcmSink(PcmSinkImpl) from PcmSinkImpl to PcmSinkImpl {
+	/**
+		Opens a playback sink for the supplied audio format.
+	**/
+	public inline function new(sampleRate:Int, channels:Int, bufferFrames = 0) {
+		this = _init(sampleRate, channels, bufferFrames);
+	}
+
+	/**
+		Disposes of the sink and closes its playback device.
+	**/
+	@:hlNative("miniaudio", "pcm_sink_dispose")
+	public function dispose():Void {}
+
+	/**
+		Queues interleaved 32-bit float PCM frames.
+	**/
+	public inline function writeFloat32Interleaved(bytes:Bytes, frames:Int):Int {
+		return _writeFloat(@:privateAccess bytes.b, frames);
+	}
+
+	@:hlNative("miniaudio", "pcm_sink_init")
+	private static function _init(sampleRate:Int, channels:Int, bufferFrames:Int):PcmSink {
+		return null;
+	}
+
+	@:hlNative("miniaudio", "pcm_sink_write_float")
+	private function _writeFloat(bytes:hl.Bytes, frames:Int):Int {
+		return 0;
+	}
+
+	@:hlNative("miniaudio", "pcm_sink_buffered_frames")
+	public function getBufferedFrames():Int {
+		return 0;
+	}
+
+	@:hlNative("miniaudio", "pcm_sink_played_frames")
+	public function getPlayedFrames():Float {
+		return 0;
+	}
+
+	@:hlNative("miniaudio", "pcm_sink_pause")
+	public function pause(paused:Bool):Void {}
+
+	@:hlNative("miniaudio", "pcm_sink_flush")
+	public function flush():Void {}
+
+	@:hlNative("miniaudio", "pcm_sink_set_volume")
+	public function setVolume(volume:Float):Void {}
+}
+
+private typedef PcmSinkImpl = hl.Abstract<"ma_pcm_sink_handle">;
+
 // ─── SoundGroup ───────────────────────────────────────────────────────────────
 
 /**
