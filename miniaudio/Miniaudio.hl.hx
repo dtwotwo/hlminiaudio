@@ -713,6 +713,16 @@ class Miniaudio {
 	public static function setListenerWorldUp(index:Int, x:Float, y:Float, z:Float):Void {}
 
 	/**
+		Returns the approximate playback device latency in milliseconds.
+
+		Returns 0 if the audio engine or playback device is not initialized.
+	**/
+	@:hlNative("miniaudio", "device_get_playback_latency")
+	public static function getPlaybackLatency():Float {
+		return 0.0;
+	}
+
+	/**
 		Decodes the provided audio file bytes into floating-point PCM data.
 	**/
 	public static inline function decodeToPCMFloat(bytes:Bytes):DecodedAudio {

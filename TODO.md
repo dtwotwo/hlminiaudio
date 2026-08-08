@@ -101,6 +101,52 @@
 - [x] prevent premature buffer freeing when sounds share the same source
 - [x] prevent parent sound group disposal while child groups / sounds still reference it
 
+## Rhythm game / low-latency timing
+
+- [ ] sample-accurate engine clock
+  - [ ] expose engine time in PCM frames
+  - [ ] expose engine time in milliseconds
+  - [ ] expose actual engine sample rate
+- [ ] sample-accurate sound scheduling
+  - [ ] scheduled start by engine PCM frame
+  - [ ] scheduled stop by engine PCM frame
+  - [ ] scheduled start / stop helpers in milliseconds
+- [ ] playback transport API
+  - [ ] stable song position based on audio clock
+  - [ ] pause / resume without clock drift
+  - [ ] sample-accurate seek synchronization
+  - [ ] output latency compensation
+  - [ ] user calibration offset support
+- [ ] configurable engine initialization
+  - [ ] sample rate
+  - [ ] channel count
+  - [ ] period size in frames
+  - [ ] period size in milliseconds
+- [ ] playback timing diagnostics
+  - [ ] actual device period size
+  - [ ] actual device sample rate
+  - [ ] estimated playback latency
+  - [ ] underrun counter
+  - [ ] underrun frame counter
+- [ ] real-time safe PCM path
+  - [ ] replace callback mutex with SPSC ring buffer
+  - [ ] no allocations in audio callback
+  - [ ] no blocking operations in audio callback
+- [ ] prebuffered streaming mode
+  - [ ] background decode
+  - [ ] decoded PCM ring buffer
+  - [ ] configurable prebuffer target
+  - [ ] low-buffer diagnostics
+- [ ] sound processing flags
+  - [ ] disable pitch processing when unused
+  - [ ] disable spatialization when unused
+- [ ] rhythm timing tests
+  - [ ] deterministic scheduled-start test
+  - [ ] scheduled-stop test
+  - [ ] seek + clock synchronization test
+  - [ ] long-running clock drift test
+  - [ ] PCM underrun stress test
+
 ## Bindings / public API
 
 - [ ] add bindings for playback device control
