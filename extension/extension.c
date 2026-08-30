@@ -100,11 +100,7 @@ ma_result memory_stream_tell(void* userData, ma_int64* cursor)
 	return MA_SUCCESS;
 }
 
-void buffer_handle_release(ma_buffer_handle* handle, int force);
-static void group_handle_release(ma_group_handle* handle, int force);
-static void sound_handle_release(ma_sound_handle* handle);
 static void buffer_handle_finalize(ma_buffer_handle* handle);
-static void group_handle_finalize(ma_group_handle* handle);
 
 ma_buffer_handle* buffer_handle_alloc(ma_audio_buffer* buffer, void* data)
 {

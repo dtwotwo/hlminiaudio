@@ -2,6 +2,10 @@ if(POLICY CMP0135)
 	cmake_policy(SET CMP0135 NEW)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 include(FetchContent)
 
 function(disable_msvc_warnings target_name)
@@ -129,7 +133,7 @@ if (WASI)
 else()
 	file(GLOB NATIVE_SOURCES "*.c")
 	add_library(extension SHARED ${NATIVE_SOURCES})
-	set_target_properties(extension PROPERTIES SUFFIX ".hdll")
+	set_target_properties(extension PROPERTIES PREFIX "" SUFFIX ".hdll")
 endif()
 
 if(CMAKE_VERSION VERSION_GREATER 3.12)
@@ -139,11 +143,63 @@ endif()
 
 set_target_properties(extension PROPERTIES OUTPUT_NAME "miniaudio")
 
-if (NOT WASI)
-	if (WIN32)
-		target_include_directories(extension PRIVATE "$ENV{HASHLINK}/include")
-		target_link_libraries(extension PRIVATE "$ENV{HASHLINK}/libhl.lib")
+if(NOT WASI)
+	set(HASHLINK_ROOT_HINTS /usr/local /usr)
+	foreach(HASHLINK_ENV_VAR HASHLINK_ROOT HASHLINK HASHLINK_PATH HASHLINKPATH PATH)
+		if(DEFINED ENV{${HASHLINK_ENV_VAR}} AND NOT "$ENV{${HASHLINK_ENV_VAR}}" STREQUAL "")
+			file(TO_CMAKE_PATH "$ENV{${HASHLINK_ENV_VAR}}" HASHLINK_ENV_HINTS)
+			foreach(HASHLINK_ENV_HINT IN LISTS HASHLINK_ENV_HINTS)
+				list(APPEND HASHLINK_ROOT_HINTS "${HASHLINK_ENV_HINT}")
+				get_filename_component(HASHLINK_ENV_PARENT "${HASHLINK_ENV_HINT}" DIRECTORY)
+				list(APPEND HASHLINK_ROOT_HINTS "${HASHLINK_ENV_PARENT}")
+			endforeach()
+		endif()
+	endforeach()
+
+	find_program(HASHLINK_EXECUTABLE
+		NAMES hl hl.exe
+		HINTS ${HASHLINK_ROOT_HINTS}
+		PATH_SUFFIXES bin
+	)
+	if(HASHLINK_EXECUTABLE)
+		get_filename_component(HASHLINK_BIN_DIR "${HASHLINK_EXECUTABLE}" DIRECTORY)
+		get_filename_component(HASHLINK_EXECUTABLE_ROOT "${HASHLINK_BIN_DIR}" DIRECTORY)
+		list(PREPEND HASHLINK_ROOT_HINTS "${HASHLINK_EXECUTABLE_ROOT}" "${HASHLINK_BIN_DIR}")
 	endif()
+
+	find_path(HASHLINK_INCLUDE_DIR
+		NAMES hl.h
+		HINTS ${HASHLINK_ROOT_HINTS}
+		PATH_SUFFIXES include src
+	)
+	if(WIN32)
+		find_library(HASHLINK_LIBRARY
+			NAMES libhl
+			HINTS ${HASHLINK_ROOT_HINTS}
+			PATH_SUFFIXES lib x64/Release Release
+		)
+	elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		find_library(HASHLINK_LIBRARY
+			NAMES libhl.so hl
+			HINTS ${HASHLINK_ROOT_HINTS}
+			PATH_SUFFIXES lib lib64
+		)
+	else()
+		find_library(HASHLINK_LIBRARY
+			NAMES hl
+			HINTS ${HASHLINK_ROOT_HINTS}
+			PATH_SUFFIXES lib lib64
+		)
+	endif()
+
+	if(NOT HASHLINK_INCLUDE_DIR OR NOT HASHLINK_LIBRARY)
+		message(FATAL_ERROR
+			"HashLink was not found. Set HASHLINK_ROOT, HASHLINK, HASHLINK_PATH, or HASHLINKPATH."
+		)
+	endif()
+
+	target_include_directories(extension PRIVATE "${HASHLINK_INCLUDE_DIR}")
+	target_link_libraries(extension PRIVATE "${HASHLINK_LIBRARY}")
 endif()
 
 FetchContent_Declare(

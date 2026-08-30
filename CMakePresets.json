@@ -21,6 +21,21 @@
 				"lhs": "${hostSystemName}",
 				"rhs": "Windows"
 			}
+		},
+		{
+			"name": "linux-release",
+			"displayName": "Linux Release",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/out/build/${presetName}",
+			"installDir": "${sourceDir}/out/install/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			},
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Linux"
+			}
 		}
 	]
 }

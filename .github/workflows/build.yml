@@ -12,6 +12,68 @@ permissions:
   contents: write
 
 jobs:
+  linux:
+    name: Build and test Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Set up Haxe
+        uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: "4.3.7"
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install --yes build-essential ninja-build
+
+      - name: Build HashLink
+        run: |
+          git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git "$RUNNER_TEMP/hashlink-src"
+          make -C "$RUNNER_TEMP/hashlink-src" -j"$(nproc)" libhl.so hl
+          mkdir -p "$RUNNER_TEMP/hashlink/bin" "$RUNNER_TEMP/hashlink/include" "$RUNNER_TEMP/hashlink/lib"
+          cp "$RUNNER_TEMP/hashlink-src/hl" "$RUNNER_TEMP/hashlink/bin/hl"
+          cp "$RUNNER_TEMP/hashlink-src/libhl.so" "$RUNNER_TEMP/hashlink/lib/libhl.so"
+          cp "$RUNNER_TEMP/hashlink-src/src/hl.h" "$RUNNER_TEMP/hashlink-src/src/hl_ffi.h" "$RUNNER_TEMP/hashlink/include/"
+          echo "HASHLINK_ROOT=$RUNNER_TEMP/hashlink" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/hashlink/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$RUNNER_TEMP/hashlink/lib" >> "$GITHUB_ENV"
+
+      - name: Configure CMake
+        run: cmake --preset linux-release
+
+      - name: Build release
+        run: cmake --build out/build/linux-release
+
+      - name: Compile HL tests
+        working-directory: tests/testMain
+        run: |
+          cp ../../out/build/linux-release/extension/miniaudio.hdll .
+          haxe --version
+          haxe test-hl.hxml
+
+      - name: Run HL tests
+        working-directory: tests/testMain
+        run: |
+          hl --version
+          LD_LIBRARY_PATH="$PWD:$LD_LIBRARY_PATH" hl test.hl
+
+      - name: Package Linux build
+        run: |
+          mkdir -p dist/linux
+          cp out/build/linux-release/extension/miniaudio.hdll dist/linux/
+          cp LICENSE* dist/linux/
+          tar -czf hlminiaudio-linux.tar.gz -C dist/linux .
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: hlminiaudio-linux
+          path: hlminiaudio-linux.tar.gz
+
   build:
     name: Build native
     runs-on: windows-2025-vs2026
@@ -131,7 +193,7 @@ jobs:
 
   package:
     name: Package release
-    needs: test
+    needs: [test, linux]
     runs-on: windows-2025-vs2026
 
     steps:
@@ -145,6 +207,12 @@ jobs:
         with:
           path: dist/native
           key: ${{ runner.os }}-hlminiaudio-native-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: hlminiaudio-linux
+          path: .
 
       - name: Stage license files
         shell: pwsh
@@ -161,6 +229,9 @@ jobs:
           }
           if (-not (Get-ChildItem -Path 'dist/native' -File -Filter 'LICENSE*')) {
             throw 'Missing dist/native/LICENSE*'
+          }
+          if (-not (Test-Path 'hlminiaudio-linux.tar.gz')) {
+            throw 'Missing hlminiaudio-linux.tar.gz'
           }
 
       - name: Create release zip
@@ -184,18 +255,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = 'nightly'
-          $asset = 'hlminiaudio-windows.zip'
+          $windowsAsset = 'hlminiaudio-windows.zip'
+          $linuxAsset = 'hlminiaudio-linux.tar.gz'
           $notes = @'
-          Automated nightly Windows build of `hlminiaudio`.
+          Automated nightly Windows and Linux builds of `hlminiaudio`.
 
-          Download `hlminiaudio-windows.zip` and extract it where you want to keep the native files.
+          Download the archive for your platform and extract it where you want to keep the native files.
           '@
 
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           $releaseExists = $LASTEXITCODE -eq 0
 
           if (-not $releaseExists) {
-            gh release create $tag $asset `
+            gh release create $tag $windowsAsset $linuxAsset `
               --repo $env:GITHUB_REPOSITORY `
               --target $env:GITHUB_SHA `
               --title 'Nightly Release' `
@@ -217,10 +289,26 @@ jobs:
             throw 'Failed to move the nightly tag.'
           }
 
-          gh release upload $tag $asset `
+          gh release upload $tag $windowsAsset $linuxAsset `
             --repo $env:GITHUB_REPOSITORY `
             --clobber
 
           if ($LASTEXITCODE -ne 0) {
-            throw 'Failed to replace the nightly asset.'
+            throw 'Failed to replace the nightly assets.'
+          }
+
+      - name: Upload published release assets
+        if: github.event_name == 'release' && github.event.action == 'published'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload '${{ github.event.release.tag_name }}' `
+            'hlminiaudio-windows.zip' `
+            'hlminiaudio-linux.tar.gz' `
+            --repo $env:GITHUB_REPOSITORY `
+            --clobber
+
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to upload the release assets.'
           }
