@@ -612,6 +612,28 @@ abstract StreamDecoder(StreamDecoderImpl) from StreamDecoderImpl to StreamDecode
 	}
 
 	/**
+		Opens a new stream decoder using a random-access reader.
+	**/
+	public static function fromReader(onRead:(Int, Int) -> Bytes, fullSize:Int):StreamDecoder {
+		return _fromReader((offset:Int, length:Int, data:hl.Bytes) -> {
+			try {
+				var bytes = onRead(offset, length);
+				if (bytes == null || bytes.length < length)
+					return -1;
+				data.blit(0, hl.Bytes.fromBytes(bytes), 0, length);
+				return 0;
+			} catch (_:Dynamic) {
+				return -1;
+			}
+		}, fullSize);
+	}
+
+	@:hlNative("miniaudio", "stream_open_reader")
+	private static function _fromReader(onRead:(Int, Int, hl.Bytes) -> Int, fullSize:Int):StreamDecoder {
+		return null;
+	}
+
+	/**
 		Opens a new stream decoder from the provided audio file path.
 	**/
 	public static inline function fromFile(path:String):StreamDecoder {

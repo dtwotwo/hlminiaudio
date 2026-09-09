@@ -64,6 +64,7 @@ typedef struct ma_stream_decoder
 	void (*finalize)(struct ma_stream_decoder*);
 	stream_decoder_kind kind;
 	vbyte* bytes;
+	vclosure* reader;
 	memory_stream stream;
 	ma_decoder decoder;
 	ma_libvorbis vorbis;

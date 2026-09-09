@@ -168,26 +168,29 @@ void stream_decoder_finalize(ma_stream_decoder* decoder)
 
 void stream_decoder_release(ma_stream_decoder* decoder, int force)
 {
-	if (decoder == NULL || !decoder->initialized)
+	if (decoder == NULL)
 		return;
 
-	if (!force && decoder->refCount > 0)
+	if (decoder->initialized && !force && decoder->refCount > 0)
 	{
 		decoder->disposeRequested = 1;
 		return;
 	}
 
-	switch (decoder->kind)
+	if (decoder->initialized)
 	{
-		case STREAM_DECODER_VORBIS:
-			ma_libvorbis_uninit(&decoder->vorbis, NULL);
-			break;
-		case STREAM_DECODER_OPUS:
-			ma_libopus_uninit(&decoder->opus, NULL);
-			break;
-		default:
-			ma_decoder_uninit(&decoder->decoder);
-			break;
+		switch (decoder->kind)
+		{
+			case STREAM_DECODER_VORBIS:
+				ma_libvorbis_uninit(&decoder->vorbis, NULL);
+				break;
+			case STREAM_DECODER_OPUS:
+				ma_libopus_uninit(&decoder->opus, NULL);
+				break;
+			default:
+				ma_decoder_uninit(&decoder->decoder);
+				break;
+		}
 	}
 
 	decoder->initialized = 0;
@@ -197,6 +200,11 @@ void stream_decoder_release(ma_stream_decoder* decoder, int force)
 	{
 		hl_remove_root(&decoder->bytes);
 		decoder->bytes = NULL;
+	}
+	if (decoder->reader != NULL)
+	{
+		hl_remove_root(&decoder->reader);
+		decoder->reader = NULL;
 	}
 }
 
