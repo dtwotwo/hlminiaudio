@@ -7,7 +7,9 @@ HL_PRIM bool HL_NAME(init)()
 	if (engine_initialized)
 		return true;
 
-	lastResult = ma_engine_init(NULL, &engine);
+	ma_engine_config engineConfig = ma_engine_config_init();
+	configure_playback_clock(&engineConfig);
+	lastResult = ma_engine_init(&engineConfig, &engine);
 	if (lastResult == MA_SUCCESS)
 	{
 		am_mutex_init(&callback_mutex);

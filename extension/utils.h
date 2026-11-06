@@ -22,6 +22,9 @@ extern sound_callback_entry* sound_callbacks;
 extern bool engine_initialized;
 extern am_mutex callback_mutex;
 
+void configure_playback_clock(ma_engine_config* config);
+double sound_playback_delay(const ma_sound_handle* sound);
+
 ma_result memory_stream_read(void* userData, void* bufferOut, size_t bytesToRead, size_t* bytesRead);
 ma_result memory_stream_seek(void* userData, ma_int64 byteOffset, ma_seek_origin origin);
 ma_result memory_stream_tell(void* userData, ma_int64* cursor);

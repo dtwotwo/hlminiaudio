@@ -9,6 +9,55 @@ int lastDecodedChannels, lastDecodedSampleRate, lastDecodedSamples;
 bool engine_initialized = false;
 am_mutex callback_mutex;
 
+static ma_timer playback_timer;
+static MA_ATOMIC(8, ma_uint64) playback_period_end_us;
+
+static void on_engine_process(void* userData, float* frames, ma_uint64 frameCount)
+{
+	const ma_device* device = ma_engine_get_device((ma_engine*)userData);
+	ma_uint32 periodFrames = device->playback.internalPeriodSizeInFrames;
+	ma_uint32 periodRate = device->playback.internalSampleRate;
+	double duration = (double)frameCount / device->sampleRate;
+
+	(void)frames;
+	if (periodFrames != 0 && periodRate != 0)
+		duration = ma_min(duration, (double)periodFrames / periodRate);
+
+	// The source cursor already includes the block that was just mixed
+	ma_atomic_exchange_64(&playback_period_end_us,
+		(ma_uint64)((ma_timer_get_time_in_seconds(&playback_timer) + duration) * 1000000.0));
+}
+
+void configure_playback_clock(ma_engine_config* config)
+{
+	ma_timer_init(&playback_timer);
+	ma_atomic_exchange_64(&playback_period_end_us, 0);
+	config->onProcess = on_engine_process;
+	config->pProcessUserData = &engine;
+}
+
+double sound_playback_delay(const ma_sound_handle* sound)
+{
+	const ma_sound* rawSound = &sound->sound;
+	ma_uint64 end = ma_atomic_load_64(&playback_period_end_us);
+	double remaining = (double)end / 1000000.0 - ma_timer_get_time_in_seconds(&playback_timer);
+
+	if (remaining <= 0 || !ma_device_is_started(ma_engine_get_device(&engine)) ||
+		!ma_sound_is_playing(rawSound) || ma_sound_at_end(rawSound) ||
+		ma_atomic_load_64(&rawSound->seekTarget) != MA_SEEK_TARGET_NONE)
+		return 0;
+
+	double pitch = ma_sound_get_pitch(rawSound);
+	for (const ma_group_handle* group = sound->parent; group != NULL; group = group->parent)
+	{
+		if (!ma_sound_group_is_playing(&group->group))
+			return 0;
+		pitch *= ma_sound_group_get_pitch(&group->group);
+	}
+
+	return remaining * pitch;
+}
+
 sound_callback_entry* sound_callbacks = NULL;
 
 void clear_sound_callbacks()
