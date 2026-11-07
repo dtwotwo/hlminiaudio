@@ -86,6 +86,21 @@ static ma_result reader_stream_tell(void* userData, ma_int64* cursor)
 	return MA_SUCCESS;
 }
 
+static ma_result reader_decoder_read(ma_decoder* pDecoder, void* bufferOut, size_t bytesToRead, size_t* bytesRead)
+{
+	if (pDecoder == NULL)
+		return MA_INVALID_ARGS;
+	return reader_stream_read(pDecoder->pUserData, bufferOut, bytesToRead, bytesRead);
+}
+
+static ma_result reader_decoder_seek(ma_decoder* pDecoder, ma_int64 byteOffset, ma_seek_origin origin)
+{
+	if (pDecoder == NULL)
+		return MA_INVALID_ARGS;
+	return reader_stream_seek(pDecoder->pUserData, byteOffset, origin);
+}
+
+
 // ─── STREAM DECODER ──────────────────────────────────────
 
 HL_PRIM ma_stream_decoder* HL_NAME(stream_open)(vbyte* bytes, int size)
@@ -234,7 +249,7 @@ HL_PRIM ma_stream_decoder* HL_NAME(stream_open_reader)(vclosure* reader, int ful
 	{
 		decoder->kind = STREAM_DECODER_MINIAUDIO;
 		decoderConfig = ma_decoder_config_init(ma_format_f32, 0, 0);
-		lastResult = ma_decoder_init(reader_stream_read, reader_stream_seek, decoder, &decoderConfig, &decoder->decoder);
+		lastResult = ma_decoder_init(reader_decoder_read, reader_decoder_seek, decoder, &decoderConfig, &decoder->decoder);
 		if (lastResult == MA_SUCCESS)
 		{
 			decoder->initialized = 1;
